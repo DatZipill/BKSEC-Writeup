@@ -40,10 +40,52 @@ bt
 ```
 
 để xem lại địa chỉ câu lệnh trước khi chương trình bị exit. Địa chỉ ta thu được là 0x0000000000402815 nên em đặt thêm 1 breakpoint ở 0x0000000000402810. Khi hit breakpoint tại đây, em xem các lệnh tiếp theo của thanh ghi RIP thì thu được như sau:
+![](breakpoint.PNG)
+
+Vậy hàm làm exit chương trình ở địa chỉ 0x4022b1, mở hàm này trong Ghidra em thu được: 
 
 ![](hamkey.PNG)
 
 Đây chính là hàm xử lí flag của mình. Hàm FUN kia so sánh các giá trị của local_68..., nếu sai thì sẽ exit -1. Đến đây em sử dụng Z3 để giải và tìm ra được flag
+
+```python
+from z3 import *
+
+s = Solver()
+
+param_1 = [BitVec(f'param_1{i}', 64) for i in range(10)]
+
+local_68 = param_1[2] + param_1[0] + param_1[1];
+local_60 = param_1[5] + param_1[3] + param_1[4];
+local_58 = param_1[0] ^ param_1[6] + param_1[7];
+local_50 = param_1[3] ^ param_1[1] ^ param_1[2];
+local_48 = param_1[6] ^ param_1[4] ^ param_1[5];
+local_40 = (param_1[7] - param_1[0]) - param_1[1];
+local_38 = param_1[6] ^ param_1[1] ^ param_1[3] + param_1[2] ^ param_1[5] + param_1[4];
+local_30 = param_1[3] + (param_1[5] - param_1[2]);
+local_28 = param_1[7] + (param_1[1] - param_1[3]) + param_1[5];
+local_20 = param_1[0] + param_1[7] ^ param_1[5] ^ param_1[6];
+
+s.add(local_68 == 0x3d275d492e2a5429)
+s.add(local_60 == -0x7e3d1ccd707bcbc)
+s.add(local_58 == -0x70c01eea55d244d5)
+s.add(local_50 == 0x50644262757e456d)
+s.add(local_48 == 0xb7c393329797a24)
+s.add(local_40 == -0x519185a46b8e8a7e)
+s.add(local_38 == 0x6536450f5a1b3745)
+s.add(local_30 == 0x2a465263556b6c5d)
+s.add(local_28 == -0x4da0257a7344165c)
+s.add(local_20 == -0x47704f35702031d3)
+
+if s.check() == sat:
+	m = s.model()
+	res = b""
+	for i in range(8):
+		val = m[param_1[i]].as_long()
+		res += val.to_bytes(8, byteorder='little') # Do file thuc thi luu theo quy tac Little Edian
+	print(res)
+  
+```
 
 CyKor{Sorry_for_the_prank_but_wasn't_it_fun?_e071a0b358c7a6c4e4}
 
